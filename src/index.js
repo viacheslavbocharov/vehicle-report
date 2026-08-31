@@ -1,25 +1,38 @@
-export async function onRequestPost(context) {
-  const { request, env } = context;
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
 
-  try {
-    if (!env.RESEND_API_KEY) {
-      return jsonResponse(
-        { error: "RESEND_API_KEY is not configured." },
-        500
-      );
+    if (url.pathname === "/api/submit" && request.method === "POST") {
+      return handleSubmit(request, env);
     }
 
-if (!env.RECIPIENT_EMAILS) {
-  return jsonResponse(
-    { error: "RECIPIENT_EMAILS is not configured." },
-    500
-  );
-}
+    if (url.pathname.startsWith("/api/")) {
+      return jsonResponse({ error: "Not found." }, 404);
+    }
 
-const recipients = env.RECIPIENT_EMAILS
-  .split(",")
-  .map((email) => email.trim())
-  .filter(Boolean);
+    return env.ASSETS.fetch(request);
+  },
+};
+
+async function handleSubmit(request, env) {
+  try {
+    if (!env.RESEND_API_KEY) {
+      return jsonResponse({ error: "RESEND_API_KEY is not configured." }, 500);
+    }
+
+    if (!env.RECIPIENT_EMAILS) {
+      return jsonResponse({ error: "RECIPIENT_EMAILS is not configured." }, 500);
+    }
+
+    const recipients = env.RECIPIENT_EMAILS
+      .split(",")
+      .map((email) => email.trim())
+      .filter(Boolean);
+
+    if (recipients.length === 0) {
+      return jsonResponse({ error: "RECIPIENT_EMAILS does not contain any addresses." }, 500);
+    }
+
     const data = await request.json();
 
     const vehicleNumber =
@@ -58,9 +71,13 @@ const recipients = env.RECIPIENT_EMAILS
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      hour12: false,
     }).format(new Date());
 
-    const subject = `Нове повідомлення${vehicleNumber !== "Не вказано" ? ` — ${vehicleNumber}` : ""}`;
+    const subject =
+      vehicleNumber !== "Не вказано"
+        ? `Нове повідомлення — ${vehicleNumber}`
+        : "Нове повідомлення";
 
     const html = `
       <h2>Нове повідомлення</h2>
@@ -76,6 +93,9 @@ const recipients = env.RECIPIENT_EMAILS
       <p><strong>Дата та час:</strong> ${escapeHtml(submittedAt)}</p>
     `;
 
+    const fromAddress =
+      env.FROM_EMAIL || "Vehicle Report <onboarding@resend.dev>";
+
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -83,7 +103,7 @@ const recipients = env.RECIPIENT_EMAILS
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Vehicle Report <onboarding@resend.dev>",
+        from: fromAddress,
         to: recipients,
         subject,
         html,
@@ -92,27 +112,22 @@ const recipients = env.RECIPIENT_EMAILS
 
     const resendResult = await resendResponse.json();
 
-if (!resendResponse.ok) {
-  console.error("Resend error:", resendResult);
-
-  return jsonResponse(
-    {
-      error: "Email service rejected the request.",
-      resendError: resendResult,
-    },
-    502
-  );
-}
+    if (!resendResponse.ok) {
+      console.error("Resend error:", resendResult);
+      return jsonResponse(
+        {
+          error: "Email service rejected the request.",
+          resendError: resendResult,
+        },
+        502
+      );
+    }
 
     return jsonResponse({ ok: true }, 200);
   } catch (error) {
     console.error("Submit error:", error);
     return jsonResponse({ error: "Unexpected server error." }, 500);
   }
-}
-
-export function onRequest() {
-  return jsonResponse({ error: "Method not allowed." }, 405);
 }
 
 function jsonResponse(data, status = 200) {

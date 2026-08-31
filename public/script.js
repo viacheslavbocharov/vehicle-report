@@ -87,8 +87,7 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     console.error(error);
     statusElement.classList.add("error");
-    statusElement.textContent =
-      "Не вдалося надіслати дані. Спробуйте ще раз.";
+    statusElement.textContent = "Не вдалося надіслати дані. Спробуйте ще раз.";
     submitButton.disabled = false;
   }
 });
