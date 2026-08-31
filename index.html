@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>Надіслати дані</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="page">
+    <section class="card" aria-labelledby="form-title">
+      <div id="formView">
+        <h1 id="form-title">Введіть номер автівки</h1>
+        <p class="subtitle">
+          Після натискання кнопки ми попросимо дозволити доступ до вашої геолокації.
+        </p>
+
+        <form id="reportForm" novalidate>
+          <label class="label" for="vehicleNumber">Номер автівки</label>
+          <input
+            id="vehicleNumber"
+            name="vehicleNumber"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            placeholder="Наприклад: AB12 CDE"
+            maxlength="30"
+          />
+
+          <button id="submitButton" type="submit">Надіслати</button>
+
+          <p id="status" class="status" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+
+      <div id="successView" class="success hidden" aria-live="polite">
+        <div class="success-icon" aria-hidden="true">✓</div>
+        <h2>Дякую!</h2>
+        <p>Дані надіслано.</p>
+        <p class="small">Можете закрити цю сторінку.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/script.js"></script>
+</body>
+</html>
